@@ -1,10 +1,14 @@
 #include "app.h"
+#include "notes.h"
 #include "qcustomplot.h"
 #include <iostream>
 #include <QWidget>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QCloseEvent>
+#include <QElapsedTimer>
+#include <QDateTime>
 #include <cmath>
 
 App::App(QWidget *parent) : QMainWindow(parent) {
@@ -37,10 +41,28 @@ App::App(QWidget *parent) : QMainWindow(parent) {
     setupPlot(timeDomainPlot, "Time (s)", "Amplitude");
     layout->addWidget(timeDomainPlot, 1);
     
-    // Frequency Domain Plot
-    QLabel *freqLabel = new QLabel("Frequency Domain", centralWidget);
+    // Frequency Domain Plot - Header with title and dominant frequency
+    QWidget *freqHeaderWidget = new QWidget(centralWidget);
+    freqHeaderWidget->setStyleSheet("background-color: #000000;");
+    QHBoxLayout *freqHeaderLayout = new QHBoxLayout(freqHeaderWidget);
+    freqHeaderLayout->setContentsMargins(0, 0, 0, 0);
+    freqHeaderLayout->setSpacing(10);
+    
+    QLabel *freqLabel = new QLabel("Frequency Domain", freqHeaderWidget);
     freqLabel->setStyleSheet("color: #CCCCCC; font-size: 14px; font-weight: bold;");
-    layout->addWidget(freqLabel);
+    freqHeaderLayout->addWidget(freqLabel);
+    
+    freqHeaderLayout->addStretch();
+    
+    dominantFreqLabel = new QLabel("Dominant Frequency: -- Hz", freqHeaderWidget);
+    dominantFreqLabel->setStyleSheet("color: #CCCCCC; font-size: 12px;");
+    freqHeaderLayout->addWidget(dominantFreqLabel);
+    
+    closestNoteLabel = new QLabel("Closest Note: --", freqHeaderWidget);
+    closestNoteLabel->setStyleSheet("color: #CCCCCC; font-size: 12px;");
+    freqHeaderLayout->addWidget(closestNoteLabel);
+    
+    layout->addWidget(freqHeaderWidget);
     
     frequencyDomainPlot = new QCustomPlot(centralWidget);
     setupPlot(frequencyDomainPlot, "Frequency (Hz)", "Magnitude (dB)");
@@ -129,7 +151,6 @@ void App::updateAudioData(const double* timeData, const double* fftData, int siz
     
     currentSampleRate = sampleRate;
     
-    // Copy time domain data
     timeBuffer.resize(size);
     amplitudeBuffer.resize(size);
     for (int i = 0; i < size; ++i) {
@@ -137,7 +158,6 @@ void App::updateAudioData(const double* timeData, const double* fftData, int siz
         amplitudeBuffer[i] = timeData[i];
     }
     
-    // Copy and convert FFT data to magnitude in dB
     int fftSize = size / 2;
     freqBuffer.resize(fftSize);
     magnitudeBuffer.resize(fftSize);
@@ -175,6 +195,36 @@ void App::refreshPlots() {
     frequencyDomainPlot->graph(0)->setData(freqBuffer, magnitudeBuffer);
     frequencyDomainPlot->replot();
     
+    // Update labels only every 250ms
+    qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+    if (currentTime - lastLabelUpdateTime >= LABEL_UPDATE_INTERVAL_MS) {
+        // Calculate dominant frequency (find peak in magnitude)
+        int peakIndex = 0;
+        double peakMagnitude = magnitudeBuffer[0];
+        for (int i = 1; i < magnitudeBuffer.size(); ++i) {
+            if (magnitudeBuffer[i] > peakMagnitude) {
+                peakMagnitude = magnitudeBuffer[i];
+                peakIndex = i;
+            }
+        }
+        double dominantFreq = freqBuffer[peakIndex];
+        dominantFreqLabel->setText(QString("Dominant Frequency: %1 Hz").arg(dominantFreq, 0, 'f', 1));
+        
+        // Find and display closest note
+        int closestNoteIndex = findClosestNote(dominantFreq);
+        const char* noteNames[] = {"E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4", 
+                                    "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", 
+                                    "G#5", "A5", "A#5", "B5", "C6", "C#6", "D6", "D#6", "E6"};
+        double cents = 1200.0 * std::log2(dominantFreq / highEStringNotes[closestNoteIndex]);
+        closestNoteLabel->setText(QString("Closest Note: %1 (fret %2, %3%4 cents)")
+            .arg(noteNames[closestNoteIndex])
+            .arg(closestNoteIndex)
+            .arg(cents >= 0 ? "+" : "")
+            .arg(cents, 0, 'f', 0));
+        
+        lastLabelUpdateTime = currentTime;
+    }
+    
     dataReady = false;
 }
 
@@ -187,6 +237,42 @@ void App::closeEvent(QCloseEvent *event) {
 App::~App() {
     refreshTimer->stop();
     std::cout << "App destroyed" << std::endl;
+}
+
+int App::findClosestNote(double frequency) const {
+    // Binary search-like approach to find closest frequency
+    if (frequency <= highEStringNotes[0]) {
+        return 0;
+    }
+    if (frequency >= highEStringNotes[highEStringNotes.size() - 1]) {
+        return highEStringNotes.size() - 1;
+    }
+    
+    int left = 0;
+    int right = highEStringNotes.size() - 1;
+    
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+        
+        if (highEStringNotes[mid] == frequency) {
+            return mid;
+        }
+        
+        if (highEStringNotes[mid] < frequency) {
+            left = mid + 1;
+        } else {
+            right = mid;
+        }
+    }
+    
+    // Check which is closer: left-1 or left
+    if (left > 0) {
+        double diffLeft = std::abs(frequency - highEStringNotes[left]);
+        double diffPrev = std::abs(frequency - highEStringNotes[left - 1]);
+        return (diffLeft < diffPrev) ? left : (left - 1);
+    }
+    
+    return left;
 }
 
 void App::run() {

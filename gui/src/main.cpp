@@ -167,7 +167,7 @@ static int streamCallback(
         callbackData->in[i] = in[i * callbackData->inputChannels];
     }
 
-    // Apply FIR lowpass filter (500Hz cutoff)
+    // Apply FIR lowpass filter (2000Hz cutoff)
     for (unsigned long i = 0; i < framesPerBuffer; i++) {
         // Shift history buffer and add new sample
         for (int j = FILTER_ORDER - 1; j > 0; j--) {
@@ -209,6 +209,8 @@ static int streamCallback(
             + proportion * callbackData->spectroSize)];
 
         // Display full block characters with heights based on frequency intensity
+        //max_freq = std::max(max_freq, freq);
+
         if (freq < 0.125) {
             printf("▁");
         } else if (freq < 0.25) {
@@ -226,6 +228,8 @@ static int streamCallback(
         } else {
             printf("█");
         }
+
+        //std::cout << "Dominant frequency" << ": " << max_freq << "\n";
     }
     fflush(stdout);
 
@@ -234,8 +238,6 @@ static int streamCallback(
 
 void audioThreadFunc() {
     std::cout << "Audio thread starting..." << std::endl;
-
-    // Initialize PortAudio
     PaError err;
     err = Pa_Initialize();
     checkErr(err);
@@ -451,8 +453,6 @@ void audioThreadFunc() {
         Pa_Terminate();
         return;
     }
-
-    std::cout << "Audio capture started. Close the window to stop." << std::endl;
 
     // Run until GUI signals to stop
     while (g_app != nullptr && !g_app->shouldStop) {
