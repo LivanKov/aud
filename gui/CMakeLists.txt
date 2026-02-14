@@ -16,6 +16,33 @@ if(NOT Qt6_FOUND)
     find_package(Qt5 COMPONENTS Core Widgets PrintSupport REQUIRED)
 endif()
 
+# Find PortAudio
+find_library(PORTAUDIO_LIBRARY portaudio HINTS
+    ${CMAKE_CURRENT_SOURCE_DIR}/../lib/portaudio/lib/.libs
+    /usr/local/lib
+    /usr/lib
+)
+find_path(PORTAUDIO_INCLUDE_DIR portaudio.h HINTS
+    ${CMAKE_CURRENT_SOURCE_DIR}/../lib/portaudio/include
+    /usr/local/include
+    /usr/include
+)
+
+# Find FFTW
+find_library(FFTW_LIBRARY fftw3 HINTS
+    ${CMAKE_CURRENT_SOURCE_DIR}/../lib/fftw-3.3.10/.libs
+    /usr/local/lib
+    /usr/lib
+)
+find_path(FFTW_INCLUDE_DIR fftw3.h HINTS
+    ${CMAKE_CURRENT_SOURCE_DIR}/../lib/fftw-3.3.10/api
+    /usr/local/include
+    /usr/include
+)
+
+# Find ALSA (required for pa_linux_alsa.h)
+find_library(ALSA_LIBRARY asound)
+
 # Add executable
 add_executable(${PROJECT_NAME}
     src/main.cpp
@@ -27,6 +54,8 @@ add_executable(${PROJECT_NAME}
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${PORTAUDIO_INCLUDE_DIR}
+    ${FFTW_INCLUDE_DIR}
 )
 
 # Link Qt libraries
@@ -35,6 +64,14 @@ if(Qt6_FOUND)
 else()
     target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core Qt5::Widgets Qt5::PrintSupport)
 endif()
+
+# Link PortAudio and FFTW
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${PORTAUDIO_LIBRARY}
+    ${FFTW_LIBRARY}
+    ${ALSA_LIBRARY}
+    pthread
+)
 
 # Compiler warnings
 if(MSVC)

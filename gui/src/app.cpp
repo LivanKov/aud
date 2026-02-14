@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QCloseEvent>
+#include <cmath>
 
 App::App(QWidget *parent) : QMainWindow(parent) {
     std::cout << "App initialized" << std::endl;
@@ -44,7 +46,12 @@ App::App(QWidget *parent) : QMainWindow(parent) {
     setupPlot(frequencyDomainPlot, "Frequency (Hz)", "Magnitude (dB)");
     layout->addWidget(frequencyDomainPlot, 1);
     
-    // Add sample data
+    // Setup refresh timer for real-time updates
+    refreshTimer = new QTimer(this);
+    connect(refreshTimer, &QTimer::timeout, this, &App::refreshPlots);
+    refreshTimer->start(33); // ~30 FPS
+    
+    // Add initial sample data
     addSampleData();
 }
 
@@ -91,31 +98,94 @@ void App::setupPlot(QCustomPlot *plot, const QString &xLabel, const QString &yLa
 }
 
 void App::addSampleData() {
-    // Time domain - sine wave
-    QVector<double> time(1000), amplitude(1000);
-    for (int i = 0; i < 1000; ++i) {
-        time[i] = i / 1000.0;
-        amplitude[i] = qSin(2 * M_PI * 5 * time[i]) + 0.5 * qSin(2 * M_PI * 10 * time[i]);
+    // Time domain - flat line until real data arrives
+    QVector<double> time(512), amplitude(512);
+    for (int i = 0; i < 512; ++i) {
+        time[i] = i / 44100.0;
+        amplitude[i] = 0;
     }
     timeDomainPlot->graph(0)->setData(time, amplitude);
-    timeDomainPlot->xAxis->setRange(0, 1);
-    timeDomainPlot->yAxis->setRange(-2, 2);
+    timeDomainPlot->xAxis->setRange(0, 512.0 / 44100.0);
+    timeDomainPlot->yAxis->setRange(-1, 1);
     timeDomainPlot->replot();
     
-    // Frequency domain - sample spectrum
-    QVector<double> freq(500), magnitude(500);
-    for (int i = 0; i < 500; ++i) {
-        freq[i] = i * 0.1;
-        magnitude[i] = -60 + 60 * qExp(-qPow((i - 50) / 10.0, 2)) + 
-                       40 * qExp(-qPow((i - 100) / 15.0, 2));
+    // Frequency domain - flat line until real data arrives
+    QVector<double> freq(256), magnitude(256);
+    for (int i = 0; i < 256; ++i) {
+        freq[i] = i * 44100.0 / 512.0;
+        magnitude[i] = -80;
     }
     frequencyDomainPlot->graph(0)->setData(freq, magnitude);
-    frequencyDomainPlot->xAxis->setRange(0, 50);
-    frequencyDomainPlot->yAxis->setRange(-70, 0);
+    frequencyDomainPlot->xAxis->setRange(20, 20000);
+    frequencyDomainPlot->xAxis->setScaleType(QCPAxis::stLogarithmic);
+    QSharedPointer<QCPAxisTickerLog> logTicker(new QCPAxisTickerLog);
+    frequencyDomainPlot->xAxis->setTicker(logTicker);
+    frequencyDomainPlot->yAxis->setRange(-80, 0);
     frequencyDomainPlot->replot();
 }
 
+void App::updateAudioData(const double* timeData, const double* fftData, int size, double sampleRate) {
+    QMutexLocker locker(&dataMutex);
+    
+    currentSampleRate = sampleRate;
+    
+    // Copy time domain data
+    timeBuffer.resize(size);
+    amplitudeBuffer.resize(size);
+    for (int i = 0; i < size; ++i) {
+        timeBuffer[i] = i / sampleRate;
+        amplitudeBuffer[i] = timeData[i];
+    }
+    
+    // Copy and convert FFT data to magnitude in dB
+    int fftSize = size / 2;
+    freqBuffer.resize(fftSize);
+    magnitudeBuffer.resize(fftSize);
+    
+    for (int i = 0; i < fftSize; ++i) {
+        freqBuffer[i] = i * sampleRate / size;
+        // Convert to dB with floor at -80 dB
+        double mag = std::abs(fftData[i]) / size;
+        if (mag < 1e-10) mag = 1e-10;
+        magnitudeBuffer[i] = 20.0 * std::log10(mag);
+        if (magnitudeBuffer[i] < -80) magnitudeBuffer[i] = -80;
+    }
+    
+    dataReady = true;
+}
+
+void App::refreshPlots() {
+    QMutexLocker locker(&dataMutex);
+    
+    if (!dataReady) return;
+    
+    // Update time domain plot
+    timeDomainPlot->graph(0)->setData(timeBuffer, amplitudeBuffer);
+    timeDomainPlot->xAxis->setRange(0, timeBuffer.size() / currentSampleRate);
+    
+    // Auto-scale Y axis based on data
+    double maxAmp = 0.01;
+    for (const double& a : amplitudeBuffer) {
+        if (std::abs(a) > maxAmp) maxAmp = std::abs(a);
+    }
+    timeDomainPlot->yAxis->setRange(-maxAmp * 1.1, maxAmp * 1.1);
+    timeDomainPlot->replot();
+    
+    // Update frequency domain plot
+    frequencyDomainPlot->graph(0)->setData(freqBuffer, magnitudeBuffer);
+    frequencyDomainPlot->replot();
+    
+    dataReady = false;
+}
+
+void App::closeEvent(QCloseEvent *event) {
+    std::cout << "Window closing, signaling audio thread to stop..." << std::endl;
+    shouldStop = true;
+    event->accept();
+}
+
 App::~App() {
+    refreshTimer->stop();
     std::cout << "App destroyed" << std::endl;
 }
 

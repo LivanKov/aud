@@ -8,7 +8,7 @@
 #include <dirent.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-
+#include <regex>
 #include <portaudio.h> // PortAudio: Used for audio capture
 #include <pa_linux_alsa.h>
 #include <fftw3.h>     // FFTW:      Provides a discrete FFT algorithm to get
@@ -49,20 +49,6 @@ static inline float min(float a, float b) {
     return a < b ? a : b;
 }
 
-// Returns true if `text` contains `pattern` (case-insensitive).
-static bool containsIgnoreCase(const char* text, const char* pattern) {
-    std::string textStr = text == NULL ? "" : text;
-    std::string patternStr = pattern == NULL ? "" : pattern;
-
-    std::transform(textStr.begin(), textStr.end(), textStr.begin(), [](unsigned char c) {
-        return std::tolower(c);
-    });
-    std::transform(patternStr.begin(), patternStr.end(), patternStr.begin(), [](unsigned char c) {
-        return std::tolower(c);
-    });
-
-    return textStr.find(patternStr) != std::string::npos;
-}
 
 // Returns the ALSA card index for Yamaha THR5 if present, otherwise -1.
 static int getThr5AlsaCardIndex() {
@@ -77,7 +63,10 @@ static int getThr5AlsaCardIndex() {
                 currentCardIndex = parsedIndex;
             }
 
-            if ((containsIgnoreCase(line, "THR5") || containsIgnoreCase(line, "Yamaha"))
+            std::regex thr("THR5", std::regex::icase);
+            std::regex ymh("Yamaha", std::regex::icase);
+
+            if ((std::regex_search(line, thr) || std::regex_search(line, ymh))
                 && currentCardIndex >= 0) {
                 cardIndex = currentCardIndex;
                 break;
@@ -137,7 +126,8 @@ static int findInputDeviceByName(int numDevices, const char* pattern) {
         if (info == NULL || info->maxInputChannels <= 0) {
             continue;
         }
-        if (containsIgnoreCase(info->name, pattern)) {
+        std::regex dev_name(pattern, std::regex::icase);
+        if (std::regex_search(info->name, dev_name)) {
             return i;
         }
     }
@@ -157,9 +147,7 @@ static int getTerminalColumns() {
     return 100;
 }
 
-// PortAudio stream callback function. Will be called after every
-// `FRAMES_PER_BUFFER` audio samples PortAudio captures. Used to process the
-// resulting audio sample.
+
 static int streamCallback(
     const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer,
     const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags,
@@ -424,7 +412,7 @@ int main() {
     checkErr(err);
 
     // Wait 30 seconds (PortAudio will continue to capture audio)
-    Pa_Sleep(30 * 1000);
+    Pa_Sleep(60 * 1000);
 
     // Stop capturing audio
     err = Pa_StopStream(stream);
