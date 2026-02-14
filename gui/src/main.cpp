@@ -14,6 +14,7 @@
 #include <pa_linux_alsa.h>
 #include <fftw3.h>
 #include "app.h"
+#include "filt.h"
 
 #define SAMPLE_RATE 44100.0
 #define FRAMES_PER_BUFFER 512
@@ -22,6 +23,8 @@
 #define SPECTRO_FREQ_START 20  // Lower bound of the displayed spectrogram (Hz)
 #define SPECTRO_FREQ_END 20000 // Upper bound of the displayed spectrogram (Hz)
 
+#define FILTER_ORDER 101  // Number of FIR filter taps
+
 // Forward declaration
 static App* g_app = nullptr;
 
@@ -29,6 +32,8 @@ static App* g_app = nullptr;
 typedef struct {
     double* in;
     double* out;
+    double* filtered;     // Buffer for filtered audio
+    double* filterHistory; // History buffer for FIR filter (holds previous samples)
     fftw_plan p;
     int inputChannels;
     int startIndex;  // First index of our FFT output to display in the spectrogram
@@ -157,17 +162,36 @@ static int streamCallback(
     float* in = (float*)inputBuffer;
     streamCallbackData* callbackData = (streamCallbackData*)userData;
 
-    // Copy audio sample to FFTW's input buffer
+    // Copy audio sample to input buffer
     for (unsigned long i = 0; i < framesPerBuffer; i++) {
         callbackData->in[i] = in[i * callbackData->inputChannels];
     }
 
-    // Perform FFT
+    // Apply FIR lowpass filter (500Hz cutoff)
+    for (unsigned long i = 0; i < framesPerBuffer; i++) {
+        // Shift history buffer and add new sample
+        for (int j = FILTER_ORDER - 1; j > 0; j--) {
+            callbackData->filterHistory[j] = callbackData->filterHistory[j - 1];
+        }
+        callbackData->filterHistory[0] = callbackData->in[i];
+
+        // Convolve with filter coefficients
+        double filteredSample = 0.0;
+        for (int j = 0; j < FILTER_ORDER; j++) {
+            filteredSample += b[j] * callbackData->filterHistory[j];
+        }
+        callbackData->filtered[i] = filteredSample;
+    }
+
+    // Perform FFT on filtered data
+    for (unsigned long i = 0; i < framesPerBuffer; i++) {
+        callbackData->in[i] = callbackData->filtered[i];
+    }
     fftw_execute(callbackData->p);
 
-    // Send data to GUI if available
+    // Send filtered data to GUI if available
     if (g_app != nullptr) {
-        g_app->updateAudioData(callbackData->in, callbackData->out, 
+        g_app->updateAudioData(callbackData->filtered, callbackData->out, 
                                FRAMES_PER_BUFFER, SAMPLE_RATE);
     }
 
@@ -220,7 +244,10 @@ void audioThreadFunc() {
     spectroData = (streamCallbackData*)malloc(sizeof(streamCallbackData));
     spectroData->in = (double*)malloc(sizeof(double) * FRAMES_PER_BUFFER);
     spectroData->out = (double*)malloc(sizeof(double) * FRAMES_PER_BUFFER);
-    if (spectroData->in == NULL || spectroData->out == NULL) {
+    spectroData->filtered = (double*)malloc(sizeof(double) * FRAMES_PER_BUFFER);
+    spectroData->filterHistory = (double*)calloc(FILTER_ORDER, sizeof(double)); // Zero-initialized
+    if (spectroData->in == NULL || spectroData->out == NULL || 
+        spectroData->filtered == NULL || spectroData->filterHistory == NULL) {
         printf("Could not allocate spectro data\n");
         exit(EXIT_FAILURE);
     }
@@ -454,6 +481,8 @@ void audioThreadFunc() {
     fftw_destroy_plan(spectroData->p);
     fftw_free(spectroData->in);
     fftw_free(spectroData->out);
+    free(spectroData->filtered);
+    free(spectroData->filterHistory);
     free(spectroData);
 
     printf("\n");
