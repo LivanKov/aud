@@ -17,112 +17,113 @@ extern "C" {
  * Method:    getReadAvailable
  * Signature: ()I
  */
-JNIEXPORT jint JNICALL Java_com_portaudio_BlockingStream_getReadAvailable
-  (JNIEnv *, jobject);
+JNIEXPORT jint JNICALL
+Java_com_portaudio_BlockingStream_getReadAvailable(JNIEnv *, jobject);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    getWriteAvailable
  * Signature: ()I
  */
-JNIEXPORT jint JNICALL Java_com_portaudio_BlockingStream_getWriteAvailable
-  (JNIEnv *, jobject);
+JNIEXPORT jint JNICALL
+Java_com_portaudio_BlockingStream_getWriteAvailable(JNIEnv *, jobject);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    readFloats
  * Signature: ([FI)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_readFloats
-  (JNIEnv *, jobject, jfloatArray, jint);
+JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_readFloats(
+    JNIEnv *, jobject, jfloatArray, jint);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    writeFloats
  * Signature: ([FI)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_writeFloats
-  (JNIEnv *, jobject, jfloatArray, jint);
+JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_writeFloats(
+    JNIEnv *, jobject, jfloatArray, jint);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    readShorts
  * Signature: ([SI)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_readShorts
-  (JNIEnv *, jobject, jshortArray, jint);
+JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_readShorts(
+    JNIEnv *, jobject, jshortArray, jint);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    writeShorts
  * Signature: ([SI)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_writeShorts
-  (JNIEnv *, jobject, jshortArray, jint);
+JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_writeShorts(
+    JNIEnv *, jobject, jshortArray, jint);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    start
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_start
-  (JNIEnv *, jobject);
+JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_start(JNIEnv *,
+                                                               jobject);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    stop
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_stop
-  (JNIEnv *, jobject);
+JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_stop(JNIEnv *,
+                                                              jobject);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    abort
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_abort
-  (JNIEnv *, jobject);
+JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_abort(JNIEnv *,
+                                                               jobject);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    close
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_close
-  (JNIEnv *, jobject);
+JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_close(JNIEnv *,
+                                                               jobject);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    isStopped
  * Signature: ()Z
  */
-JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_isStopped
-  (JNIEnv *, jobject);
+JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_isStopped(JNIEnv *,
+                                                                       jobject);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    isActive
  * Signature: ()Z
  */
-JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_isActive
-  (JNIEnv *, jobject);
+JNIEXPORT jboolean JNICALL Java_com_portaudio_BlockingStream_isActive(JNIEnv *,
+                                                                      jobject);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    getTime
  * Signature: ()D
  */
-JNIEXPORT jdouble JNICALL Java_com_portaudio_BlockingStream_getTime
-  (JNIEnv *, jobject);
+JNIEXPORT jdouble JNICALL Java_com_portaudio_BlockingStream_getTime(JNIEnv *,
+                                                                    jobject);
 
 /*
  * Class:     com_portaudio_BlockingStream
  * Method:    getInfo
  * Signature: (Lcom/portaudio/StreamInfo;)V
  */
-JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_getInfo
-  (JNIEnv *, jobject, jobject);
+JNIEXPORT void JNICALL Java_com_portaudio_BlockingStream_getInfo(JNIEnv *,
+                                                                 jobject,
+                                                                 jobject);
 
 #ifdef __cplusplus
 }

@@ -52,23 +52,24 @@ extern "C" {
 
 /** Set the JACK client name.
  *
- * During Pa_Initialize, When PA JACK connects as a client of the JACK server, it requests a certain
- * name, which is for instance prepended to port names. By default this name is "PortAudio". The
- * JACK server may append a suffix to the client name, in order to avoid clashes among clients that
- * try to connect with the same name (e.g., different PA JACK clients).
+ * During Pa_Initialize, When PA JACK connects as a client of the JACK server,
+ * it requests a certain name, which is for instance prepended to port names. By
+ * default this name is "PortAudio". The JACK server may append a suffix to the
+ * client name, in order to avoid clashes among clients that try to connect with
+ * the same name (e.g., different PA JACK clients).
  *
- * This function must be called before Pa_Initialize, otherwise it won't have any effect. Note that
- * the string is not copied, but instead referenced directly, so it must not be freed for as long as
- * PA might need it.
+ * This function must be called before Pa_Initialize, otherwise it won't have
+ * any effect. Note that the string is not copied, but instead referenced
+ * directly, so it must not be freed for as long as PA might need it.
  * @sa PaJack_GetClientName
  */
-PaError PaJack_SetClientName( const char* name );
+PaError PaJack_SetClientName(const char *name);
 
 /** Get the JACK client name used by PA JACK.
  *
  * The caller is responsible for freeing the returned pointer.
  */
-PaError PaJack_GetClientName(const char** clientName);
+PaError PaJack_GetClientName(const char **clientName);
 
 #ifdef __cplusplus
 }

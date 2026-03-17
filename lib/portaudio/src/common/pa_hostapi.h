@@ -50,10 +50,10 @@
 
 /**
 The PA_NO_* host API macros are now deprecated in favor of PA_USE_* macros.
-PA_USE_* indicates whether a particular host API will be initialized by PortAudio.
-An undefined or 0 value indicates that the host API will not be used. A value of 1
-indicates that the host API will be used. PA_USE_* macros should be left undefined
-or defined to either 0 or 1.
+PA_USE_* indicates whether a particular host API will be initialized by
+PortAudio. An undefined or 0 value indicates that the host API will not be used.
+A value of 1 indicates that the host API will be used. PA_USE_* macros should be
+left undefined or defined to either 0 or 1.
 
 The code below ensures that PA_USE_* macros are always defined and have value
 0 or 1. Undefined symbols are defaulted to 0. Symbols that are neither 0 nor 1
@@ -67,8 +67,10 @@ are defaulted to 1.
 #define PA_USE_SKELETON 1
 #endif
 
-#if defined(PA_NO_ASIO) || defined(PA_NO_DS) || defined(PA_NO_WMME) || defined(PA_NO_WASAPI) || defined(PA_NO_WDMKS)
-#error "Portaudio: PA_NO_<APINAME> is no longer supported, please remove definition and use PA_USE_<APINAME> instead"
+#if defined(PA_NO_ASIO) || defined(PA_NO_DS) || defined(PA_NO_WMME) ||         \
+    defined(PA_NO_WASAPI) || defined(PA_NO_WDMKS)
+#error                                                                         \
+    "Portaudio: PA_NO_<APINAME> is no longer supported, please remove definition and use PA_USE_<APINAME> instead"
 #endif
 
 #ifndef PA_USE_ASIO
@@ -107,8 +109,10 @@ are defaulted to 1.
 #endif
 
 /* Set default values for Unix based APIs. */
-#if defined(PA_NO_OSS) || defined(PA_NO_ALSA) || defined(PA_NO_JACK) || defined(PA_NO_COREAUDIO) || defined(PA_NO_SGI) || defined(PA_NO_ASIHPI)
-#error "Portaudio: PA_NO_<APINAME> is no longer supported, please remove definition and use PA_USE_<APINAME> instead"
+#if defined(PA_NO_OSS) || defined(PA_NO_ALSA) || defined(PA_NO_JACK) ||        \
+    defined(PA_NO_COREAUDIO) || defined(PA_NO_SGI) || defined(PA_NO_ASIHPI)
+#error                                                                         \
+    "Portaudio: PA_NO_<APINAME> is no longer supported, please remove definition and use PA_USE_<APINAME> instead"
 #endif
 
 #ifndef PA_USE_OSS
@@ -154,10 +158,8 @@ are defaulted to 1.
 #endif
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif /* __cplusplus */
-
 
 /** **FOR THE USE OF pa_front.c ONLY**
     Do NOT use fields in this structure, they my change at any time.
@@ -166,178 +168,176 @@ extern "C"
 */
 typedef struct PaUtilPrivatePaFrontHostApiInfo {
 
-
-    unsigned long baseDeviceIndex;
-}PaUtilPrivatePaFrontHostApiInfo;
-
+  unsigned long baseDeviceIndex;
+} PaUtilPrivatePaFrontHostApiInfo;
 
 /** The common header for all data structures whose pointers are passed through
  the hostApiSpecificStreamInfo field of the PaStreamParameters structure.
  Note that in order to keep the public PortAudio interface clean, this structure
- is not used explicitly when declaring hostApiSpecificStreamInfo data structures.
- However, some code in pa_front depends on the first 3 members being equivalent
- with this structure.
+ is not used explicitly when declaring hostApiSpecificStreamInfo data
+ structures. However, some code in pa_front depends on the first 3 members being
+ equivalent with this structure.
  @see PaStreamParameters
 */
-typedef struct PaUtilHostApiSpecificStreamInfoHeader
-{
-    unsigned long size;             /**< size of whole structure including this header */
-    PaHostApiTypeId hostApiType;    /**< host API for which this data is intended */
-    unsigned long version;          /**< structure version */
+typedef struct PaUtilHostApiSpecificStreamInfoHeader {
+  unsigned long size; /**< size of whole structure including this header */
+  PaHostApiTypeId hostApiType; /**< host API for which this data is intended */
+  unsigned long version;       /**< structure version */
 } PaUtilHostApiSpecificStreamInfoHeader;
-
-
 
 /** A structure representing the interface to a host API. Contains both
  concrete data and pointers to functions which implement the interface.
 */
 typedef struct PaUtilHostApiRepresentation {
-    PaUtilPrivatePaFrontHostApiInfo privatePaFrontInfo;
+  PaUtilPrivatePaFrontHostApiInfo privatePaFrontInfo;
 
-    /** The host api implementation should populate the info field. In the
-        case of info.defaultInputDevice and info.defaultOutputDevice the
-        values stored should be 0 based indices within the host api's own
-        device index range (0 to deviceCount). These values will be converted
-        to global device indices by pa_front after PaUtilHostApiInitializer()
-        returns.
-    */
-    PaHostApiInfo info;
+  /** The host api implementation should populate the info field. In the
+      case of info.defaultInputDevice and info.defaultOutputDevice the
+      values stored should be 0 based indices within the host api's own
+      device index range (0 to deviceCount). These values will be converted
+      to global device indices by pa_front after PaUtilHostApiInitializer()
+      returns.
+  */
+  PaHostApiInfo info;
 
-    PaDeviceInfo** deviceInfos;
+  PaDeviceInfo **deviceInfos;
 
-    /**
-        (*Terminate)() is guaranteed to be called with a valid <hostApi>
-        parameter, which was previously returned from the same implementation's
-        initializer.
-    */
-    void (*Terminate)( struct PaUtilHostApiRepresentation *hostApi );
+  /**
+      (*Terminate)() is guaranteed to be called with a valid <hostApi>
+      parameter, which was previously returned from the same implementation's
+      initializer.
+  */
+  void (*Terminate)(struct PaUtilHostApiRepresentation *hostApi);
 
-    /**
-        The inputParameters and outputParameters pointers should not be saved
-        as they will not remain valid after OpenStream is called.
-
-
-        The following guarantees are made about parameters to (*OpenStream)():
-
-            [NOTE: the following list up to *END PA FRONT VALIDATIONS* should be
-                kept in sync with the one for ValidateOpenStreamParameters and
-                Pa_OpenStream in pa_front.c]
-
-            PaHostApiRepresentation *hostApi
-                - is valid for this implementation
-
-            PaStream** stream
-                - is non-null
-
-            - at least one of inputParameters & outputParmeters is valid (not NULL)
-
-            - if inputParameters & outputParmeters are both valid, that
-                inputParameters->device & outputParmeters->device  both use the same host api
-
-            PaDeviceIndex inputParameters->device
-                - is within range (0 to Pa_CountDevices-1) Or:
-                - is paUseHostApiSpecificDeviceSpecification and
-                    inputParameters->hostApiSpecificStreamInfo is non-NULL and refers
-                    to a valid host api
-
-            int inputParameters->numChannels
-                - if inputParameters->device is not paUseHostApiSpecificDeviceSpecification, numInputChannels is > 0
-                - upper bound is NOT validated against device capabilities
-
-            PaSampleFormat inputParameters->sampleFormat
-                - is one of the sample formats defined in portaudio.h
-
-            void *inputParameters->hostApiSpecificStreamInfo
-                - if supplied its hostApi field matches the input device's host Api
-
-            PaDeviceIndex outputParmeters->device
-                - is within range (0 to Pa_CountDevices-1)
-
-            int outputParmeters->numChannels
-                - if inputDevice is valid, numInputChannels is > 0
-                - upper bound is NOT validated against device capabilities
-
-            PaSampleFormat outputParmeters->sampleFormat
-                - is one of the sample formats defined in portaudio.h
-
-            void *outputParmeters->hostApiSpecificStreamInfo
-                - if supplied its hostApi field matches the output device's host Api
-
-            double sampleRate
-                - is not an 'absurd' rate (less than 1000. or greater than 384000.)
-                - sampleRate is NOT validated against device capabilities
-
-            PaStreamFlags streamFlags
-                - unused platform neutral flags are zero
-                - paNeverDropInput is only used for full-duplex callback streams
-                    with variable buffer size (paFramesPerBufferUnspecified)
-
-            [*END PA FRONT VALIDATIONS*]
+  /**
+      The inputParameters and outputParameters pointers should not be saved
+      as they will not remain valid after OpenStream is called.
 
 
-        The following validations MUST be performed by (*OpenStream)():
+      The following guarantees are made about parameters to (*OpenStream)():
 
-            - check that input device can support numInputChannels
+          [NOTE: the following list up to *END PA FRONT VALIDATIONS* should be
+              kept in sync with the one for ValidateOpenStreamParameters and
+              Pa_OpenStream in pa_front.c]
 
-            - check that input device can support inputSampleFormat, or that
-                we have the capability to convert from outputSampleFormat to
-                a native format
+          PaHostApiRepresentation *hostApi
+              - is valid for this implementation
 
-            - if inputStreamInfo is supplied, validate its contents,
-                or return an error if no inputStreamInfo is expected
+          PaStream** stream
+              - is non-null
 
-            - check that output device can support numOutputChannels
+          - at least one of inputParameters & outputParmeters is valid (not
+     NULL)
 
-            - check that output device can support outputSampleFormat, or that
-                we have the capability to convert from outputSampleFormat to
-                a native format
+          - if inputParameters & outputParmeters are both valid, that
+              inputParameters->device & outputParmeters->device  both use the
+     same host api
 
-            - if outputStreamInfo is supplied, validate its contents,
-                or return an error if no outputStreamInfo is expected
+          PaDeviceIndex inputParameters->device
+              - is within range (0 to Pa_CountDevices-1) Or:
+              - is paUseHostApiSpecificDeviceSpecification and
+                  inputParameters->hostApiSpecificStreamInfo is non-NULL and
+     refers to a valid host api
 
-            - if a full duplex stream is requested, check that the combination
-                of input and output parameters is supported
+          int inputParameters->numChannels
+              - if inputParameters->device is not
+     paUseHostApiSpecificDeviceSpecification, numInputChannels is > 0
+              - upper bound is NOT validated against device capabilities
 
-            - check that the device supports sampleRate
+          PaSampleFormat inputParameters->sampleFormat
+              - is one of the sample formats defined in portaudio.h
 
-            - alter sampleRate to a close allowable rate if necessary
+          void *inputParameters->hostApiSpecificStreamInfo
+              - if supplied its hostApi field matches the input device's host
+     Api
 
-            - validate inputLatency and outputLatency
+          PaDeviceIndex outputParmeters->device
+              - is within range (0 to Pa_CountDevices-1)
 
-            - validate any platform specific flags, if flags are supplied they
-                must be valid.
-    */
-    PaError (*OpenStream)( struct PaUtilHostApiRepresentation *hostApi,
-                           PaStream** stream,
-                           const PaStreamParameters *inputParameters,
-                           const PaStreamParameters *outputParameters,
-                           double sampleRate,
-                           unsigned long framesPerCallback,
-                           PaStreamFlags streamFlags,
-                           PaStreamCallback *streamCallback,
-                           void *userData );
+          int outputParmeters->numChannels
+              - if inputDevice is valid, numInputChannels is > 0
+              - upper bound is NOT validated against device capabilities
+
+          PaSampleFormat outputParmeters->sampleFormat
+              - is one of the sample formats defined in portaudio.h
+
+          void *outputParmeters->hostApiSpecificStreamInfo
+              - if supplied its hostApi field matches the output device's host
+     Api
+
+          double sampleRate
+              - is not an 'absurd' rate (less than 1000. or greater than
+     384000.)
+              - sampleRate is NOT validated against device capabilities
+
+          PaStreamFlags streamFlags
+              - unused platform neutral flags are zero
+              - paNeverDropInput is only used for full-duplex callback streams
+                  with variable buffer size (paFramesPerBufferUnspecified)
+
+          [*END PA FRONT VALIDATIONS*]
 
 
-    PaError (*IsFormatSupported)( struct PaUtilHostApiRepresentation *hostApi,
-                                  const PaStreamParameters *inputParameters,
-                                  const PaStreamParameters *outputParameters,
-                                  double sampleRate );
+      The following validations MUST be performed by (*OpenStream)():
+
+          - check that input device can support numInputChannels
+
+          - check that input device can support inputSampleFormat, or that
+              we have the capability to convert from outputSampleFormat to
+              a native format
+
+          - if inputStreamInfo is supplied, validate its contents,
+              or return an error if no inputStreamInfo is expected
+
+          - check that output device can support numOutputChannels
+
+          - check that output device can support outputSampleFormat, or that
+              we have the capability to convert from outputSampleFormat to
+              a native format
+
+          - if outputStreamInfo is supplied, validate its contents,
+              or return an error if no outputStreamInfo is expected
+
+          - if a full duplex stream is requested, check that the combination
+              of input and output parameters is supported
+
+          - check that the device supports sampleRate
+
+          - alter sampleRate to a close allowable rate if necessary
+
+          - validate inputLatency and outputLatency
+
+          - validate any platform specific flags, if flags are supplied they
+              must be valid.
+  */
+  PaError (*OpenStream)(struct PaUtilHostApiRepresentation *hostApi,
+                        PaStream **stream,
+                        const PaStreamParameters *inputParameters,
+                        const PaStreamParameters *outputParameters,
+                        double sampleRate, unsigned long framesPerCallback,
+                        PaStreamFlags streamFlags,
+                        PaStreamCallback *streamCallback, void *userData);
+
+  PaError (*IsFormatSupported)(struct PaUtilHostApiRepresentation *hostApi,
+                               const PaStreamParameters *inputParameters,
+                               const PaStreamParameters *outputParameters,
+                               double sampleRate);
 } PaUtilHostApiRepresentation;
-
 
 /** Prototype for the initialization function which must be implemented by every
  host API.
 
  This function should only return an error other than paNoError if it encounters
- an unexpected and fatal error (memory allocation error for example). In general,
- there may be conditions under which it returns a NULL interface pointer and also
- returns paNoError. For example, if the ASIO implementation detects that ASIO is
- not installed, it should return a NULL interface, and paNoError.
+ an unexpected and fatal error (memory allocation error for example). In
+ general, there may be conditions under which it returns a NULL interface
+ pointer and also returns paNoError. For example, if the ASIO implementation
+ detects that ASIO is not installed, it should return a NULL interface, and
+ paNoError.
 
  @see paHostApiInitializers
 */
-typedef PaError PaUtilHostApiInitializer( PaUtilHostApiRepresentation**, PaHostApiIndex );
-
+typedef PaError PaUtilHostApiInitializer(PaUtilHostApiRepresentation **,
+                                         PaHostApiIndex);
 
 /** paHostApiInitializers is a NULL-terminated array of host API initialization
  functions. These functions are called by pa_front.c to initialize the host APIs
@@ -345,16 +345,15 @@ typedef PaError PaUtilHostApiInitializer( PaUtilHostApiRepresentation**, PaHostA
 
  The initialization functions are invoked in order.
 
- The first successfully initialized host API that has a default input *or* output
- device is used as the default PortAudio host API. This is based on the logic that
- there is only one default host API, and it must contain the default input and output
- devices (if defined).
+ The first successfully initialized host API that has a default input *or*
+ output device is used as the default PortAudio host API. This is based on the
+ logic that there is only one default host API, and it must contain the default
+ input and output devices (if defined).
 
  There is a platform specific file that defines paHostApiInitializers for that
  platform, pa_win/pa_win_hostapis.c contains the Win32 definitions for example.
 */
 extern PaUtilHostApiInitializer *paHostApiInitializers[];
-
 
 #ifdef __cplusplus
 }

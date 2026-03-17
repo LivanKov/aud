@@ -26,25 +26,24 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
-#include "qcustomplot.h"
 #include "axistag.h"
+#include "qcustomplot.h"
+#include <QMainWindow>
 
 namespace Ui {
 class MainWindow;
 }
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
   Q_OBJECT
-  
+
 public:
   explicit MainWindow(QWidget *parent = 0);
   ~MainWindow();
-  
+
 private slots:
   void timerSlot();
-  
+
 private:
   Ui::MainWindow *ui;
   QCustomPlot *mPlot;
@@ -54,6 +53,5 @@ private:
   AxisTag *mTag2;
   QTimer mDataTimer;
 };
-
 
 #endif // MAINWINDOW_H

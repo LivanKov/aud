@@ -6,8 +6,8 @@
 #define _INC_PROPIDL_PA
 
 #ifndef COM_NO_WINDOWS_H
-#include "windows.h"
 #include "ole2.h"
+#include "windows.h"
 #endif
 
 typedef const PROPVARIANT *REFPROPVARIANT;
@@ -16,4 +16,3 @@ typedef const PROPVARIANT *REFPROPVARIANT;
 WINOLEAPI PropVariantClear(PROPVARIANT *pvar);
 
 #endif /* _INC_PROPIDL_PA */
-

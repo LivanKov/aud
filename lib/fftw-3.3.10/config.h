@@ -31,10 +31,10 @@
 
 /* Define to a macro mangling the given C identifier (in lower and upper
    case), which must not contain underscores, for linking with Fortran. */
-#define F77_FUNC(name,NAME) name ## _
+#define F77_FUNC(name, NAME) name##_
 
 /* As F77_FUNC, but for C identifiers containing underscores. */
-#define F77_FUNC_(name,NAME) name ## _
+#define F77_FUNC_(name, NAME) name##_
 
 /* Define if F77_FUNC and F77_FUNC_ are equivalent. */
 #define F77_FUNC_EQUIV 1
@@ -43,7 +43,9 @@
 /* #undef FC_DUMMY_MAIN_EQ_F77 */
 
 /* C compiler name and flags */
-#define FFTW_CC "gcc -O3 -fomit-frame-pointer -mtune=native -malign-double -fstrict-aliasing -fno-schedule-insns"
+#define FFTW_CC                                                                \
+  "gcc -O3 -fomit-frame-pointer -mtune=native -malign-double "                 \
+  "-fstrict-aliasing -fno-schedule-insns"
 
 /* Define to enable extra FFTW debugging code. */
 /* #undef FFTW_DEBUG */
@@ -70,7 +72,7 @@
 #define HAVE_ALLOCA 1
 
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
-   */
+ */
 #define HAVE_ALLOCA_H 1
 
 /* Define to enable Altivec optimizations. */
@@ -113,11 +115,11 @@
 #define HAVE_COSL 1
 
 /* Define to 1 if you have the declaration of `cosl', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_COSL 1
 
 /* Define to 1 if you have the declaration of `cosq', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_COSQ 0
 
 /* Define to 1 if you have the declaration of `drand48', and to 0 if you
@@ -133,11 +135,11 @@
 #define HAVE_DECL_POSIX_MEMALIGN 1
 
 /* Define to 1 if you have the declaration of `sinl', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_SINL 1
 
 /* Define to 1 if you have the declaration of `sinq', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_SINQ 0
 
 /* Define to 1 if you have the declaration of `srand48', and to 0 if you
@@ -382,9 +384,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at runtime.
-	STACK_DIRECTION > 0 => grows toward higher addresses
-	STACK_DIRECTION < 0 => grows toward lower addresses
-	STACK_DIRECTION = 0 => direction of growth unknown */
+        STACK_DIRECTION > 0 => grows toward higher addresses
+        STACK_DIRECTION < 0 => grows toward lower addresses
+        STACK_DIRECTION = 0 => direction of growth unknown */
 /* #undef STACK_DIRECTION */
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -403,7 +405,7 @@
 /* #undef WINDOWS_F77_MANGLING */
 
 /* Include g77-compatible wrappers in addition to any other Fortran wrappers.
-   */
+ */
 #define WITH_G77_WRAPPERS 1
 
 /* Use our own aligned malloc routine; mainly helpful for Windows systems

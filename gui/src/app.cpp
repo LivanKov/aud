@@ -1,281 +1,292 @@
 #include "app.h"
 #include "notes.h"
 #include "qcustomplot.h"
-#include <iostream>
-#include <QWidget>
-#include <QVBoxLayout>
+#include <QCloseEvent>
+#include <QDateTime>
+#include <QElapsedTimer>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QCloseEvent>
-#include <QElapsedTimer>
-#include <QDateTime>
+#include <QVBoxLayout>
+#include <QWidget>
 #include <cmath>
+#include <iostream>
 
 App::App(QWidget *parent) : QMainWindow(parent) {
-    std::cout << "App initialized" << std::endl;
-    
-    // Set window properties
-    setWindowTitle("Audio Capture - Time & Frequency Domain");
-    resize(900, 700);
-    setMinimumSize(600, 500);
-    
-    // Set black background
-    setStyleSheet("QMainWindow { background-color: #000000; }");
-    
-    // Create central widget
-    QWidget *centralWidget = new QWidget(this);
-    centralWidget->setStyleSheet("background-color: #000000;");
-    setCentralWidget(centralWidget);
-    
-    // Create vertical layout
-    QVBoxLayout *layout = new QVBoxLayout(centralWidget);
-    layout->setSpacing(15);
-    layout->setContentsMargins(15, 15, 15, 15);
-    
-    // Time Domain Plot
-    QLabel *timeLabel = new QLabel("Time Domain", centralWidget);
-    timeLabel->setStyleSheet("color: #CCCCCC; font-size: 14px; font-weight: bold;");
-    layout->addWidget(timeLabel);
-    
-    timeDomainPlot = new QCustomPlot(centralWidget);
-    setupPlot(timeDomainPlot, "Time (s)", "Amplitude");
-    layout->addWidget(timeDomainPlot, 1);
-    
-    // Frequency Domain Plot - Header with title and dominant frequency
-    QWidget *freqHeaderWidget = new QWidget(centralWidget);
-    freqHeaderWidget->setStyleSheet("background-color: #000000;");
-    QHBoxLayout *freqHeaderLayout = new QHBoxLayout(freqHeaderWidget);
-    freqHeaderLayout->setContentsMargins(0, 0, 0, 0);
-    freqHeaderLayout->setSpacing(10);
-    
-    QLabel *freqLabel = new QLabel("Frequency Domain", freqHeaderWidget);
-    freqLabel->setStyleSheet("color: #CCCCCC; font-size: 14px; font-weight: bold;");
-    freqHeaderLayout->addWidget(freqLabel);
-    
-    freqHeaderLayout->addStretch();
-    
-    dominantFreqLabel = new QLabel("Dominant Frequency: -- Hz", freqHeaderWidget);
-    dominantFreqLabel->setStyleSheet("color: #CCCCCC; font-size: 12px;");
-    freqHeaderLayout->addWidget(dominantFreqLabel);
-    
-    closestNoteLabel = new QLabel("Closest Note: --", freqHeaderWidget);
-    closestNoteLabel->setStyleSheet("color: #CCCCCC; font-size: 12px;");
-    freqHeaderLayout->addWidget(closestNoteLabel);
-    
-    layout->addWidget(freqHeaderWidget);
-    
-    frequencyDomainPlot = new QCustomPlot(centralWidget);
-    setupPlot(frequencyDomainPlot, "Frequency (Hz)", "Magnitude (dB)");
-    layout->addWidget(frequencyDomainPlot, 1);
-    
-    // Setup refresh timer for real-time updates
-    refreshTimer = new QTimer(this);
-    connect(refreshTimer, &QTimer::timeout, this, &App::refreshPlots);
-    refreshTimer->start(33); // ~30 FPS
-    
-    // Add initial sample data
-    addSampleData();
+  std::cout << "App initialized" << std::endl;
+
+  // Set window properties
+  setWindowTitle("Audio Capture - Time & Frequency Domain");
+  resize(900, 700);
+  setMinimumSize(600, 500);
+
+  // Set black background
+  setStyleSheet("QMainWindow { background-color: #000000; }");
+
+  // Create central widget
+  QWidget *centralWidget = new QWidget(this);
+  centralWidget->setStyleSheet("background-color: #000000;");
+  setCentralWidget(centralWidget);
+
+  // Create vertical layout
+  QVBoxLayout *layout = new QVBoxLayout(centralWidget);
+  layout->setSpacing(15);
+  layout->setContentsMargins(15, 15, 15, 15);
+
+  // Time Domain Plot
+  QLabel *timeLabel = new QLabel("Time Domain", centralWidget);
+  timeLabel->setStyleSheet(
+      "color: #CCCCCC; font-size: 14px; font-weight: bold;");
+  layout->addWidget(timeLabel);
+
+  timeDomainPlot = new QCustomPlot(centralWidget);
+  setupPlot(timeDomainPlot, "Time (s)", "Amplitude");
+  layout->addWidget(timeDomainPlot, 1);
+
+  // Frequency Domain Plot - Header with title and dominant frequency
+  QWidget *freqHeaderWidget = new QWidget(centralWidget);
+  freqHeaderWidget->setStyleSheet("background-color: #000000;");
+  QHBoxLayout *freqHeaderLayout = new QHBoxLayout(freqHeaderWidget);
+  freqHeaderLayout->setContentsMargins(0, 0, 0, 0);
+  freqHeaderLayout->setSpacing(10);
+
+  QLabel *freqLabel = new QLabel("Frequency Domain", freqHeaderWidget);
+  freqLabel->setStyleSheet(
+      "color: #CCCCCC; font-size: 14px; font-weight: bold;");
+  freqHeaderLayout->addWidget(freqLabel);
+
+  freqHeaderLayout->addStretch();
+
+  dominantFreqLabel = new QLabel("Dominant Frequency: -- Hz", freqHeaderWidget);
+  dominantFreqLabel->setStyleSheet("color: #CCCCCC; font-size: 12px;");
+  freqHeaderLayout->addWidget(dominantFreqLabel);
+
+  closestNoteLabel = new QLabel("Closest Note: --", freqHeaderWidget);
+  closestNoteLabel->setStyleSheet("color: #CCCCCC; font-size: 12px;");
+  freqHeaderLayout->addWidget(closestNoteLabel);
+
+  layout->addWidget(freqHeaderWidget);
+
+  frequencyDomainPlot = new QCustomPlot(centralWidget);
+  setupPlot(frequencyDomainPlot, "Frequency (Hz)", "Magnitude (dB)");
+  layout->addWidget(frequencyDomainPlot, 1);
+
+  // Setup refresh timer for real-time updates
+  refreshTimer = new QTimer(this);
+  connect(refreshTimer, &QTimer::timeout, this, &App::refreshPlots);
+  refreshTimer->start(33); // ~30 FPS
+
+  // Add initial sample data
+  addSampleData();
 }
 
-void App::setupPlot(QCustomPlot *plot, const QString &xLabel, const QString &yLabel) {
-    // Dark theme colors
-    QColor bgColor(26, 26, 26);
-    QColor gridColor(60, 60, 60);
-    QColor axisColor(150, 150, 150);
-    QColor plotLineColor(100, 200, 255);
-    
-    // Set background
-    plot->setBackground(bgColor);
-    
-    // Configure axes
-    plot->xAxis->setLabel(xLabel);
-    plot->yAxis->setLabel(yLabel);
-    plot->xAxis->setLabelColor(axisColor);
-    plot->yAxis->setLabelColor(axisColor);
-    plot->xAxis->setTickLabelColor(axisColor);
-    plot->yAxis->setTickLabelColor(axisColor);
-    plot->xAxis->setBasePen(QPen(axisColor));
-    plot->yAxis->setBasePen(QPen(axisColor));
-    plot->xAxis->setTickPen(QPen(axisColor));
-    plot->yAxis->setTickPen(QPen(axisColor));
-    plot->xAxis->setSubTickPen(QPen(axisColor));
-    plot->yAxis->setSubTickPen(QPen(axisColor));
-    
-    // Enable grid
-    plot->xAxis->grid()->setVisible(true);
-    plot->yAxis->grid()->setVisible(true);
-    plot->xAxis->grid()->setPen(QPen(gridColor, 1, Qt::SolidLine));
-    plot->yAxis->grid()->setPen(QPen(gridColor, 1, Qt::SolidLine));
-    plot->xAxis->grid()->setSubGridVisible(true);
-    plot->yAxis->grid()->setSubGridVisible(true);
-    plot->xAxis->grid()->setSubGridPen(QPen(gridColor, 1, Qt::DotLine));
-    plot->yAxis->grid()->setSubGridPen(QPen(gridColor, 1, Qt::DotLine));
-    
-    // Add a graph
-    plot->addGraph();
-    plot->graph(0)->setPen(QPen(plotLineColor, 2));
-    
-    // Enable interactions
-    plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+void App::setupPlot(QCustomPlot *plot, const QString &xLabel,
+                    const QString &yLabel) {
+  // Dark theme colors
+  QColor bgColor(26, 26, 26);
+  QColor gridColor(60, 60, 60);
+  QColor axisColor(150, 150, 150);
+  QColor plotLineColor(100, 200, 255);
+
+  // Set background
+  plot->setBackground(bgColor);
+
+  // Configure axes
+  plot->xAxis->setLabel(xLabel);
+  plot->yAxis->setLabel(yLabel);
+  plot->xAxis->setLabelColor(axisColor);
+  plot->yAxis->setLabelColor(axisColor);
+  plot->xAxis->setTickLabelColor(axisColor);
+  plot->yAxis->setTickLabelColor(axisColor);
+  plot->xAxis->setBasePen(QPen(axisColor));
+  plot->yAxis->setBasePen(QPen(axisColor));
+  plot->xAxis->setTickPen(QPen(axisColor));
+  plot->yAxis->setTickPen(QPen(axisColor));
+  plot->xAxis->setSubTickPen(QPen(axisColor));
+  plot->yAxis->setSubTickPen(QPen(axisColor));
+
+  // Enable grid
+  plot->xAxis->grid()->setVisible(true);
+  plot->yAxis->grid()->setVisible(true);
+  plot->xAxis->grid()->setPen(QPen(gridColor, 1, Qt::SolidLine));
+  plot->yAxis->grid()->setPen(QPen(gridColor, 1, Qt::SolidLine));
+  plot->xAxis->grid()->setSubGridVisible(true);
+  plot->yAxis->grid()->setSubGridVisible(true);
+  plot->xAxis->grid()->setSubGridPen(QPen(gridColor, 1, Qt::DotLine));
+  plot->yAxis->grid()->setSubGridPen(QPen(gridColor, 1, Qt::DotLine));
+
+  // Add a graph
+  plot->addGraph();
+  plot->graph(0)->setPen(QPen(plotLineColor, 2));
+
+  // Enable interactions
+  plot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
 }
 
 void App::addSampleData() {
-    // Time domain - flat line until real data arrives
-    QVector<double> time(512), amplitude(512);
-    for (int i = 0; i < 512; ++i) {
-        time[i] = i / 44100.0;
-        amplitude[i] = 0;
-    }
-    timeDomainPlot->graph(0)->setData(time, amplitude);
-    timeDomainPlot->xAxis->setRange(0, 512.0 / 44100.0);
-    timeDomainPlot->yAxis->setRange(-1, 1);
-    timeDomainPlot->replot();
-    
-    // Frequency domain - flat line until real data arrives
-    QVector<double> freq(256), magnitude(256);
-    for (int i = 0; i < 256; ++i) {
-        freq[i] = i * 44100.0 / 512.0;
-        magnitude[i] = -80;
-    }
-    frequencyDomainPlot->graph(0)->setData(freq, magnitude);
-    frequencyDomainPlot->xAxis->setRange(20, 20000);
-    frequencyDomainPlot->xAxis->setScaleType(QCPAxis::stLogarithmic);
-    QSharedPointer<QCPAxisTickerLog> logTicker(new QCPAxisTickerLog);
-    frequencyDomainPlot->xAxis->setTicker(logTicker);
-    frequencyDomainPlot->yAxis->setRange(-80, 0);
-    frequencyDomainPlot->replot();
+  // Time domain - flat line until real data arrives
+  QVector<double> time(512), amplitude(512);
+  for (int i = 0; i < 512; ++i) {
+    time[i] = i / 44100.0;
+    amplitude[i] = 0;
+  }
+  timeDomainPlot->graph(0)->setData(time, amplitude);
+  timeDomainPlot->xAxis->setRange(0, 512.0 / 44100.0);
+  timeDomainPlot->yAxis->setRange(-1, 1);
+  timeDomainPlot->replot();
+
+  // Frequency domain - flat line until real data arrives
+  QVector<double> freq(256), magnitude(256);
+  for (int i = 0; i < 256; ++i) {
+    freq[i] = i * 44100.0 / 512.0;
+    magnitude[i] = -80;
+  }
+  frequencyDomainPlot->graph(0)->setData(freq, magnitude);
+  frequencyDomainPlot->xAxis->setRange(20, 20000);
+  frequencyDomainPlot->xAxis->setScaleType(QCPAxis::stLogarithmic);
+  QSharedPointer<QCPAxisTickerLog> logTicker(new QCPAxisTickerLog);
+  frequencyDomainPlot->xAxis->setTicker(logTicker);
+  frequencyDomainPlot->yAxis->setRange(-80, 0);
+  frequencyDomainPlot->replot();
 }
 
-void App::updateAudioData(const double* timeData, const double* fftData, int size, double sampleRate) {
-    QMutexLocker locker(&dataMutex);
-    
-    currentSampleRate = sampleRate;
-    
-    timeBuffer.resize(size);
-    amplitudeBuffer.resize(size);
-    for (int i = 0; i < size; ++i) {
-        timeBuffer[i] = i / sampleRate;
-        amplitudeBuffer[i] = timeData[i];
-    }
-    
-    int fftSize = size / 2;
-    freqBuffer.resize(fftSize);
-    magnitudeBuffer.resize(fftSize);
-    
-    for (int i = 0; i < fftSize; ++i) {
-        freqBuffer[i] = i * sampleRate / size;
-        // Convert to dB with floor at -80 dB
-        double mag = std::abs(fftData[i]) / size;
-        if (mag < 1e-10) mag = 1e-10;
-        magnitudeBuffer[i] = 20.0 * std::log10(mag);
-        if (magnitudeBuffer[i] < -80) magnitudeBuffer[i] = -80;
-    }
-    
-    dataReady = true;
+void App::updateAudioData(const double *timeData, const double *fftData,
+                          int size, double sampleRate) {
+  QMutexLocker locker(&dataMutex);
+
+  currentSampleRate = sampleRate;
+
+  timeBuffer.resize(size);
+  amplitudeBuffer.resize(size);
+  for (int i = 0; i < size; ++i) {
+    timeBuffer[i] = i / sampleRate;
+    amplitudeBuffer[i] = timeData[i];
+  }
+
+  int fftSize = size / 2;
+  freqBuffer.resize(fftSize);
+  magnitudeBuffer.resize(fftSize);
+
+  for (int i = 0; i < fftSize; ++i) {
+    freqBuffer[i] = i * sampleRate / size;
+    // Convert to dB with floor at -80 dB
+    double mag = std::abs(fftData[i]) / size;
+    if (mag < 1e-10)
+      mag = 1e-10;
+    magnitudeBuffer[i] = 20.0 * std::log10(mag);
+    if (magnitudeBuffer[i] < -80)
+      magnitudeBuffer[i] = -80;
+  }
+
+  dataReady = true;
 }
 
 void App::refreshPlots() {
-    QMutexLocker locker(&dataMutex);
-    
-    if (!dataReady) return;
-    
-    // Update time domain plot
-    timeDomainPlot->graph(0)->setData(timeBuffer, amplitudeBuffer);
-    timeDomainPlot->xAxis->setRange(0, timeBuffer.size() / currentSampleRate);
-    
-    // Auto-scale Y axis based on data
-    double maxAmp = 0.01;
-    for (const double& a : amplitudeBuffer) {
-        if (std::abs(a) > maxAmp) maxAmp = std::abs(a);
+  QMutexLocker locker(&dataMutex);
+
+  if (!dataReady)
+    return;
+
+  // Update time domain plot
+  timeDomainPlot->graph(0)->setData(timeBuffer, amplitudeBuffer);
+  timeDomainPlot->xAxis->setRange(0, timeBuffer.size() / currentSampleRate);
+
+  // Auto-scale Y axis based on data
+  double maxAmp = 0.01;
+  for (const double &a : amplitudeBuffer) {
+    if (std::abs(a) > maxAmp)
+      maxAmp = std::abs(a);
+  }
+  timeDomainPlot->yAxis->setRange(-maxAmp * 1.1, maxAmp * 1.1);
+  timeDomainPlot->replot();
+
+  // Update frequency domain plot
+  frequencyDomainPlot->graph(0)->setData(freqBuffer, magnitudeBuffer);
+  frequencyDomainPlot->replot();
+
+  // Update labels only every 250ms
+  qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
+  if (currentTime - lastLabelUpdateTime >= LABEL_UPDATE_INTERVAL_MS) {
+    // Calculate dominant frequency (find peak in magnitude)
+    int peakIndex = 0;
+    double peakMagnitude = magnitudeBuffer[0];
+    for (int i = 1; i < magnitudeBuffer.size(); ++i) {
+      if (magnitudeBuffer[i] > peakMagnitude) {
+        peakMagnitude = magnitudeBuffer[i];
+        peakIndex = i;
+      }
     }
-    timeDomainPlot->yAxis->setRange(-maxAmp * 1.1, maxAmp * 1.1);
-    timeDomainPlot->replot();
-    
-    // Update frequency domain plot
-    frequencyDomainPlot->graph(0)->setData(freqBuffer, magnitudeBuffer);
-    frequencyDomainPlot->replot();
-    
-    // Update labels only every 250ms
-    qint64 currentTime = QDateTime::currentMSecsSinceEpoch();
-    if (currentTime - lastLabelUpdateTime >= LABEL_UPDATE_INTERVAL_MS) {
-        // Calculate dominant frequency (find peak in magnitude)
-        int peakIndex = 0;
-        double peakMagnitude = magnitudeBuffer[0];
-        for (int i = 1; i < magnitudeBuffer.size(); ++i) {
-            if (magnitudeBuffer[i] > peakMagnitude) {
-                peakMagnitude = magnitudeBuffer[i];
-                peakIndex = i;
-            }
-        }
-        double dominantFreq = freqBuffer[peakIndex];
-        dominantFreqLabel->setText(QString("Dominant Frequency: %1 Hz").arg(dominantFreq, 0, 'f', 1));
-        
-        // Find and display closest note
-        int closestNoteIndex = findClosestNote(dominantFreq);
-        const char* noteNames[] = {"E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4", 
-                                    "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", 
-                                    "G#5", "A5", "A#5", "B5", "C6", "C#6", "D6", "D#6", "E6"};
-        double cents = 1200.0 * std::log2(dominantFreq / highEStringNotes[closestNoteIndex]);
-        closestNoteLabel->setText(QString("Closest Note: %1 (fret %2, %3%4 cents)")
-            .arg(noteNames[closestNoteIndex])
-            .arg(closestNoteIndex)
-            .arg(cents >= 0 ? "+" : "")
-            .arg(cents, 0, 'f', 0));
-        
-        lastLabelUpdateTime = currentTime;
-    }
-    
-    dataReady = false;
+    double dominantFreq = freqBuffer[peakIndex];
+    dominantFreqLabel->setText(
+        QString("Dominant Frequency: %1 Hz").arg(dominantFreq, 0, 'f', 1));
+
+    // Find and display closest note
+    int closestNoteIndex = findClosestNote(dominantFreq);
+    const char *noteNames[] = {"E4",  "F4", "F#4", "G4", "G#4", "A4", "A#4",
+                               "B4",  "C5", "C#5", "D5", "D#5", "E5", "F5",
+                               "F#5", "G5", "G#5", "A5", "A#5", "B5", "C6",
+                               "C#6", "D6", "D#6", "E6"};
+    double cents =
+        1200.0 * std::log2(dominantFreq / highEStringNotes[closestNoteIndex]);
+    closestNoteLabel->setText(QString("Closest Note: %1 (fret %2, %3%4 cents)")
+                                  .arg(noteNames[closestNoteIndex])
+                                  .arg(closestNoteIndex)
+                                  .arg(cents >= 0 ? "+" : "")
+                                  .arg(cents, 0, 'f', 0));
+
+    lastLabelUpdateTime = currentTime;
+  }
+
+  dataReady = false;
 }
 
 void App::closeEvent(QCloseEvent *event) {
-    std::cout << "Window closing, signaling audio thread to stop..." << std::endl;
-    shouldStop = true;
-    event->accept();
+  std::cout << "Window closing, signaling audio thread to stop..." << std::endl;
+  shouldStop = true;
+  event->accept();
 }
 
 App::~App() {
-    refreshTimer->stop();
-    std::cout << "App destroyed" << std::endl;
+  refreshTimer->stop();
+  std::cout << "App destroyed" << std::endl;
 }
 
 int App::findClosestNote(double frequency) const {
-    // Binary search-like approach to find closest frequency
-    if (frequency <= highEStringNotes[0]) {
-        return 0;
+  // Binary search-like approach to find closest frequency
+  if (frequency <= highEStringNotes[0]) {
+    return 0;
+  }
+  if (frequency >= highEStringNotes[highEStringNotes.size() - 1]) {
+    return highEStringNotes.size() - 1;
+  }
+
+  int left = 0;
+  int right = highEStringNotes.size() - 1;
+
+  while (left < right) {
+    int mid = left + (right - left) / 2;
+
+    if (highEStringNotes[mid] == frequency) {
+      return mid;
     }
-    if (frequency >= highEStringNotes[highEStringNotes.size() - 1]) {
-        return highEStringNotes.size() - 1;
+
+    if (highEStringNotes[mid] < frequency) {
+      left = mid + 1;
+    } else {
+      right = mid;
     }
-    
-    int left = 0;
-    int right = highEStringNotes.size() - 1;
-    
-    while (left < right) {
-        int mid = left + (right - left) / 2;
-        
-        if (highEStringNotes[mid] == frequency) {
-            return mid;
-        }
-        
-        if (highEStringNotes[mid] < frequency) {
-            left = mid + 1;
-        } else {
-            right = mid;
-        }
-    }
-    
-    // Check which is closer: left-1 or left
-    if (left > 0) {
-        double diffLeft = std::abs(frequency - highEStringNotes[left]);
-        double diffPrev = std::abs(frequency - highEStringNotes[left - 1]);
-        return (diffLeft < diffPrev) ? left : (left - 1);
-    }
-    
-    return left;
+  }
+
+  // Check which is closer: left-1 or left
+  if (left > 0) {
+    double diffLeft = std::abs(frequency - highEStringNotes[left]);
+    double diffPrev = std::abs(frequency - highEStringNotes[left - 1]);
+    return (diffLeft < diffPrev) ? left : (left - 1);
+  }
+
+  return left;
 }
 
 void App::run() {
-    // Show the window
-    show();
+  // Show the window
+  show();
 }

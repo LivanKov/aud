@@ -40,7 +40,6 @@
 #define _TEST_AUDIO_ANALYZER_H
 
 /** Test the audio analyzer by itself without any PortAudio calls. */
-int PaQa_TestAnalyzer( void );
-
+int PaQa_TestAnalyzer(void);
 
 #endif /* _TEST_AUDIO_ANALYZER_H */

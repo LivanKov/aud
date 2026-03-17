@@ -1,6 +1,6 @@
 /*
- * Plain Intel IA32 assembly implementations of PortAudio sample converter functions.
- * Copyright (c) 1999-2002 Ross Bencina, Phil Burk
+ * Plain Intel IA32 assembly implementations of PortAudio sample converter
+ * functions. Copyright (c) 1999-2002 Ross Bencina, Phil Burk
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files
@@ -41,18 +41,16 @@
 #define PA_X86_PLAIN_CONVERTERS_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif /* __cplusplus */
-
 
 /**
  @brief Install optimized converter functions suitable for all IA32 processors
 
- It is recommended to call PaUtil_InitializeX86PlainConverters prior to calling Pa_Initialize
+ It is recommended to call PaUtil_InitializeX86PlainConverters prior to calling
+ Pa_Initialize
 */
-void PaUtil_InitializeX86PlainConverters( void );
-
+void PaUtil_InitializeX86PlainConverters(void);
 
 #ifdef __cplusplus
 }

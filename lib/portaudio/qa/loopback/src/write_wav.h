@@ -48,30 +48,29 @@ extern "C" {
 #endif
 
 /* Define WAV Chunk and FORM types as 4 byte integers. */
-#define RIFF_ID   (('R'<<24) | ('I'<<16) | ('F'<<8) | 'F')
-#define WAVE_ID   (('W'<<24) | ('A'<<16) | ('V'<<8) | 'E')
-#define FMT_ID    (('f'<<24) | ('m'<<16) | ('t'<<8) | ' ')
-#define DATA_ID   (('d'<<24) | ('a'<<16) | ('t'<<8) | 'a')
-#define FACT_ID   (('f'<<24) | ('a'<<16) | ('c'<<8) | 't')
+#define RIFF_ID (('R' << 24) | ('I' << 16) | ('F' << 8) | 'F')
+#define WAVE_ID (('W' << 24) | ('A' << 16) | ('V' << 8) | 'E')
+#define FMT_ID (('f' << 24) | ('m' << 16) | ('t' << 8) | ' ')
+#define DATA_ID (('d' << 24) | ('a' << 16) | ('t' << 8) | 'a')
+#define FACT_ID (('f' << 24) | ('a' << 16) | ('c' << 8) | 't')
 
 /* Errors returned by Audio_ParseSampleImage_WAV */
-#define WAV_ERR_CHUNK_SIZE     (-1)   /* Chunk size is illegal or past file size. */
-#define WAV_ERR_FILE_TYPE      (-2)   /* Not a WAV file. */
-#define WAV_ERR_ILLEGAL_VALUE  (-3)   /* Illegal or unsupported value. Eg. 927 bits/sample */
-#define WAV_ERR_FORMAT_TYPE    (-4)   /* Unsupported format, eg. compressed. */
-#define WAV_ERR_TRUNCATED      (-5)   /* End of file missing. */
+#define WAV_ERR_CHUNK_SIZE (-1) /* Chunk size is illegal or past file size. */
+#define WAV_ERR_FILE_TYPE (-2)  /* Not a WAV file. */
+#define WAV_ERR_ILLEGAL_VALUE                                                  \
+  (-3) /* Illegal or unsupported value. Eg. 927 bits/sample */
+#define WAV_ERR_FORMAT_TYPE (-4) /* Unsupported format, eg. compressed. */
+#define WAV_ERR_TRUNCATED (-5)   /* End of file missing. */
 
 /* WAV PCM data format ID */
-#define WAVE_FORMAT_PCM        (1)
-#define WAVE_FORMAT_IMA_ADPCM  (0x0011)
+#define WAVE_FORMAT_PCM (1)
+#define WAVE_FORMAT_IMA_ADPCM (0x0011)
 
-
-typedef struct WAV_Writer_s
-{
-    FILE *fid;
-    /* Offset in file for data size. */
-    int   dataSizeOffset;
-    int   dataSize;
+typedef struct WAV_Writer_s {
+  FILE *fid;
+  /* Offset in file for data size. */
+  int dataSizeOffset;
+  int dataSize;
 } WAV_Writer;
 
 /*********************************************************************************
@@ -79,22 +78,20 @@ typedef struct WAV_Writer_s
  * The header includes the DATA chunk type and size.
  * Returns number of bytes written to file or negative error code.
  */
-long Audio_WAV_OpenWriter( WAV_Writer *writer, const char *fileName, int frameRate, int samplesPerFrame );
+long Audio_WAV_OpenWriter(WAV_Writer *writer, const char *fileName,
+                          int frameRate, int samplesPerFrame);
 
 /*********************************************************************************
  * Write to the data chunk portion of a WAV file.
  * Returns bytes written or negative error code.
  */
-long Audio_WAV_WriteShorts( WAV_Writer *writer,
-        short *samples,
-        int numSamples
-        );
+long Audio_WAV_WriteShorts(WAV_Writer *writer, short *samples, int numSamples);
 
 /*********************************************************************************
  * Close WAV file.
  * Update chunk sizes so it can be read by audio applications.
  */
-long Audio_WAV_CloseWriter( WAV_Writer *writer );
+long Audio_WAV_CloseWriter(WAV_Writer *writer);
 
 #ifdef __cplusplus
 };
